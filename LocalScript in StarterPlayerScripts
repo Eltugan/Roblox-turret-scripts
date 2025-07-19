@@ -1,0 +1,56 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local turretControlEvent = ReplicatedStorage:WaitForChild("TurretControlEvent")
+local updateTurretAimEvent = ReplicatedStorage:WaitForChild("UpdateTurretAim")
+local camera = workspace.CurrentCamera
+
+local turretConnection = nil
+
+local player = game.Players.LocalPlayer
+
+local mouse = player:GetMouse()
+
+
+-- This function handles the event fired from the server
+turretControlEvent.OnClientEvent:Connect(function(inTurret)
+	
+	local character = player.Character or player.CharacterAdded:Wait()
+	
+	if inTurret then
+		-- Player is in the turret
+		for _, part in character:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Transparency = 0.7
+			end
+		end
+		
+		
+
+		turretConnection = RunService.RenderStepped:Connect(function()
+			camera.CFrame = camera.CFrame * CFrame.new(0, 0, -2)
+			
+			updateTurretAimEvent:FireServer(mouse.Hit.Position)
+		end)
+	else
+		-- Player left the turret
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		camera.CFrame = camera.CFrame --reset camera
+		
+		for _, part in character:GetDescendants() do
+			if part:IsA("BasePart") then
+				if part.Name == "HumanoidRootPart" then
+					part.Transparency = 1
+				else
+					part.Transparency = 0
+				end
+			end
+		end
+		
+		if turretConnection then
+			turretConnection:Disconnect()
+			turretConnection = nil
+		end
+	end
+end)
