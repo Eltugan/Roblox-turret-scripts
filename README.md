@@ -1,7 +1,7 @@
 # Roblox-turret-scripts
 Put local script in starterPlayerSripts
 
-put server Script inside turret model
+put TurretScript inside turret model
 
 turret model should have turrHead model with seat part
 
