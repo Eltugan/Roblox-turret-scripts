@@ -1,0 +1,51 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local turret = script.Parent
+-- Use WaitForChild to ensure parts are loaded before the script accesses them
+local head = turret:WaitForChild("turrHead")
+local seat = head:WaitForChild("seat")
+local seatPart = seat:WaitForChild("Seat")
+
+local turretControlEvent = ReplicatedStorage:WaitForChild("TurretControlEvent")
+local updateTurretAimEvent = ReplicatedStorage:WaitForChild("UpdateTurretAim")
+
+local currentOccupantPlayer = nil
+
+-- This function will run whenever the Occupant of the seat changes
+seatPart:GetPropertyChangedSignal("Occupant"):Connect(function()
+	local occupantHumanoid = seatPart.Occupant
+	
+	-- This block runs if a player just got OUT of the seat
+	if not occupantHumanoid and currentOccupantPlayer then
+		print(currentOccupantPlayer.Name .. " left the turret.")
+		turretControlEvent:FireClient(currentOccupantPlayer, false) -- Tell client to unlock mouse
+		currentOccupantPlayer = nil
+		return
+	end
+	
+	-- This block runs if a player just got INTO the seat
+	if occupantHumanoid then
+		local character = occupantHumanoid.Parent
+		local player = Players:GetPlayerFromCharacter(character)
+		
+		if player then
+			currentOccupantPlayer = player
+			print(player.Name .. " entered the turret.")
+			turretControlEvent:FireClient(player, true) -- Tell client to lock mouse
+		end
+	end
+end)
+
+updateTurretAimEvent.OnServerEvent:Connect(function(player, mousePosition)
+	-- Only the current occupant can control the turret
+	if player == currentOccupantPlayer then
+		-- Make the turret head look at the mouse position.
+		-- Create a new CFrame for the head that looks at the target position
+		local headPosition = head:GetPivot().Position
+		local newPivot = CFrame.new(headPosition, mousePosition)
+		head:PivotTo(newPivot) 
+	end
+end)
+
+
