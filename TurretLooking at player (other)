@@ -1,0 +1,58 @@
+-- Turret looking to chrarcter script
+
+local RunService = game:GetService("RunService")
+
+local turretModel = game.Workspace.Turret
+local head = turretModel:WaitForChild("turrHead")
+
+local hitbox = Instance.new("Part")
+hitbox.Size = Vector3.new(70, 70, 70)
+hitbox.Anchored = true
+hitbox.Position = head:GetPivot().Position
+hitbox.Parent = turretModel
+hitbox.CanCollide = false
+hitbox.Transparency = 1
+
+
+local neck = turretModel:WaitForChild("turrNeck")
+local HeadRotationPoint = head:WaitForChild("centre")
+head.PrimaryPart = HeadRotationPoint
+
+
+local targetCharacter = nil
+
+-- Function to find a new target
+hitbox.Touched:Connect(function(hit)
+	-- If we don't have a target, and the thing we hit is a character
+	if not targetCharacter and hit.Parent:FindFirstChild("Humanoid") then
+		targetCharacter = hit.Parent
+	end
+end)
+
+-- Main tracking loop, runs every frame
+RunService.Heartbeat:Connect(function()
+	if targetCharacter then
+		local rootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+		local humanoid = targetCharacter:FindFirstChild("Humanoid")
+
+		-- Check if the target is still valid
+		if rootPart and humanoid and humanoid.Health > 0 then
+			-- Get current positions
+			local headPosition = head:GetPivot().Position
+			local targetPosition = rootPart.Position
+			local neckPosition = neck:GetPivot().Position
+
+			-- Calculate neck rotation (Y-axis only for horizontal tracking)
+			local neckLookAtPosition = Vector3.new(targetPosition.X, neckPosition.Y, targetPosition.Z)
+			local neckCFrame = CFrame.lookAt(neckPosition, neckLookAtPosition)
+			neck:PivotTo(neckCFrame)
+
+			-- Calculate head rotation to look directly at the target (for vertical tracking)
+			local headCFrame = CFrame.lookAt(headPosition, targetPosition)
+			head:PivotTo(headCFrame)
+		else
+			-- Target is no longer valid, so clear it
+			targetCharacter = nil
+		end
+	end
+end)
